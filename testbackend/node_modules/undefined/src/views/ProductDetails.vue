@@ -3,8 +3,9 @@
     <div class="container px-5 py-24 mx-auto">
       <Breadcrumb :category="product.p_category" :product="product.product_name" />
       <div class="lg:w-4/5 mx-auto flex flex-wrap rounded dark:bg-gray-900 p-2">
-        <!-- Display loading spinner while the image is loading -->
+        <!-- Image Gallery Section -->
         <div class="relative lg:w-1/2 w-full">
+          <!-- Loading Spinner -->
           <div v-if="loadingImage" class="absolute inset-0 flex justify-center items-center">
             <svg
               class="animate-spin h-10 w-10 text-blue-500"
@@ -21,12 +22,35 @@
               />
             </svg>
           </div>
-          <img
-            :alt="product.product_name"
-            class="lg:w-full w-full object-cover object-center rounded border border-gray-200 h-full max-w-sm max-h-96"
-            :src="product.image"
-            @load="loadingImage = false"
-          />
+
+          <!-- Main Image Display -->
+          <div class="relative aspect-square mb-4">
+            <img
+              :alt="product.product_name"
+              class="w-full h-full object-cover object-center rounded border border-gray-200"
+              :src="currentImage"
+              @load="loadingImage = false"
+            />
+          </div>
+
+          <!-- Thumbnail Gallery -->
+          <div v-if="product.images && product.images.length > 1" 
+            class="flex space-x-2 overflow-x-auto pb-2"
+          >
+            <button
+              v-for="(image, index) in product.images"
+              :key="index"
+              @click="setCurrentImage(image)"
+              class="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-transform duration-200 hover:scale-105"
+              :class="{ 'ring-2 ring-blue-500': currentImage === image }"
+            >
+              <img
+                :src="image"
+                :alt="`${product.product_name} thumbnail ${index + 1}`"
+                class="w-full h-full object-cover"
+              />
+            </button>
+          </div>
         </div>
         
         <div class="lg:w-1/2 w-full lg:pl-10 lg:py-6 mt-6 lg:mt-0">
@@ -35,7 +59,7 @@
           <div class="flex mb-4">
             <!-- Add rating or other details if necessary -->
           </div>
-          <p class="leading-relaxed">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.{{ product.description }}</p>
+          <p class="leading-relaxed">{{ product.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.' }}</p>
           <div class="flex mt-6 items-center pb-5 border-b-2 border-gray-200 mb-5">
             <div class="flex ml-6 items-center">
               <span class="mr-3">Size</span>
@@ -53,20 +77,21 @@
           </div>
           <div class="flex">
             <div>
-                <span v-if="product.offer_price" class="text-lg font-bold text-red-600">
-                  {{ product.offer_price }} €
-                </span>
-                <span v-if="product.offer_price" class="text-base text-gray-500 line-through ml-2">
-                  {{ product.p_price }} €
-                </span>
-                <span v-else class="text-xl font-bold text-gray-900 dark:text-white">
-                  {{ product.p_price }} €
-                </span>
-              </div>
+              <span v-if="product.offer_price" class="text-lg font-bold text-red-600">
+                {{ product.offer_price }} €
+              </span>
+              <span v-if="product.offer_price" class="text-base text-gray-500 line-through ml-2">
+                {{ product.p_price }} €
+              </span>
+              <span v-else class="text-xl font-bold text-gray-900 dark:text-white">
+                {{ product.p_price }} €
+              </span>
+            </div>
             <button @click="addToCart(product._id, 1)" class="flex ml-auto text-white bg-blue-500 border-0 py-2 px-6 focus:outline-none hover:bg-red-600 rounded" data-cy="add_cart">Add to Cart</button>
             <button
-            @click="toggleWishlist(product._id)"
-            class="rounded-full w-10 h-10 bg-gray-200 p-0 border-0 inline-flex items-center justify-center text-gray-500 ml-4">
+              @click="toggleWishlist(product._id)"
+              class="rounded-full w-10 h-10 bg-gray-200 p-0 border-0 inline-flex items-center justify-center text-gray-500 ml-4"
+            >
               <svg
                 v-if="wishlist.includes(product._id)"
                 xmlns="http://www.w3.org/2000/svg"
@@ -118,21 +143,27 @@ import Breadcrumb from '../components/Breadcrump.vue';
 import SeenRecently from '@/components/SeenRecently.vue';
 import { backendUrl } from '@/js/index';
 
-// Declare productId as a prop
 const props = defineProps({
   productId: {
     type: String,
     required: false,
   },
 });
+
 const route = useRoute();
 const product = ref({});
 const sizes = ref(['SM', 'M', 'L', 'XL']);
 const selectedSize = ref(sizes.value[0]);
-const loadingImage = ref(true); // State to track image loading
+const loadingImage = ref(true);
+const currentImage = ref('');
+
+const setCurrentImage = (image) => {
+  loadingImage.value = true;
+  currentImage.value = image;
+};
 
 const fetchProduct = async (productId) => {
-  loadingImage.value = true; // Set to true while fetching the product
+  loadingImage.value = true;
   try {
     const response = await axios.get(`${backendUrl}/api/products`, {
       params: {
@@ -143,15 +174,19 @@ const fetchProduct = async (productId) => {
     if (response.data && response.data.length > 0) {
       const fetchedProduct = response.data[0];
 
-      // Check if p_images is defined
+      // Handle multiple images
       if (fetchedProduct.p_images) {
-        fetchedProduct.image = `${backendUrl}/api/product-image/${fetchedProduct.p_images}`;
-      } else {
-        console.error('p_images field is undefined for the product');
+        if (Array.isArray(fetchedProduct.p_images)) {
+          fetchedProduct.images = fetchedProduct.p_images.map(image => 
+            `${backendUrl}/api/product-image/${image}`
+          );
+        } else {
+          fetchedProduct.images = [`${backendUrl}/api/product-image/${fetchedProduct.p_images}`];
+        }
+        currentImage.value = fetchedProduct.images[0];
       }
 
       product.value = fetchedProduct;
-
       storeRecentProduct(product.value);
     } else {
       console.error('Product data is empty');
@@ -162,42 +197,34 @@ const fetchProduct = async (productId) => {
 };
 
 const storeRecentProduct = (product) => {
-  // Validate the product data
-  if (!product._id || !product.product_name || !product.image) {
+  if (!product._id || !product.product_name || !product.images) {
     console.error('Invalid product data', product);
     return;
   }
 
-  // Get the current list of recent products from localStorage
   let recentProducts = JSON.parse(localStorage.getItem('recentProducts')) || [];
-
-  // Remove the product if it's already in the list (to avoid duplicates)
   recentProducts = recentProducts.filter((p) => p._id !== product._id);
 
-  // Add the product to the beginning of the list
   recentProducts.unshift({
     _id: product._id,
     product_name: product.product_name,
-    image: product.image,
+    image: product.images[0],
     p_price: product.p_price,
     offer_price: product.offer_price
   });
 
-  // If the list exceeds 5 items, remove the last one (FILO principle)
   if (recentProducts.length > 5) {
     recentProducts.pop();
   }
 
-  // Save the updated list back to localStorage
   localStorage.setItem('recentProducts', JSON.stringify(recentProducts));
 };
 
-// Fetch the product initially when the component is mounted
 onMounted(() => {
   fetchWishlist();
-  fetchProduct(props.productId || route.params.productId);});
+  fetchProduct(props.productId || route.params.productId);
+});
 
-// Watch for changes in the route parameters to refetch the product
 watch(
   () => route.params.productId,
   (newProductId) => {
@@ -207,14 +234,39 @@ watch(
 </script>
 
 <style scoped>
-.w-64 {
-  width: 16rem;
-}
-
-.h-96 {
-  height: 24rem;
+.aspect-square {
+  aspect-ratio: 1 / 1;
 }
 
 .object-cover {
   object-fit: cover;
-}</style>
+}
+
+/* Smooth transitions for gallery */
+.transition-transform {
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Custom scrollbar for thumbnail gallery */
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7);
+}
+</style>

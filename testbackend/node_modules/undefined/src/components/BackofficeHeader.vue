@@ -2,30 +2,51 @@
   <header class="backoffice-header flex items-center justify-between">
     <div class="flex items-center space-x-6">
       <!-- Products Dropdown -->
-      <div class="products-section relative group">
+      <div 
+        class="products-section relative group"
+        @mouseenter="showDropdown = true"
+        @mouseleave="startHideTimer"
+      >
         <button class="flex items-center space-x-2 px-4 py-2 rounded-full hover:bg-gray-700 transition-all duration-200">
           <span>Products</span>
-          <svg class="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg 
+            class="w-4 h-4 transition-transform duration-200" 
+            :class="{ 'rotate-180': showDropdown }"
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
         
-        <div class="products-dropdown absolute left-0 mt-2 w-48 bg-gray-800 rounded-xl shadow-lg overflow-hidden transform opacity-0 scale-95 transition-all duration-200">
+        <div 
+          class="products-dropdown absolute left-0 mt-2 w-48 bg-gray-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300"
+          :class="{ 
+            'opacity-100 translate-y-0 pointer-events-auto': showDropdown,
+            'opacity-0 -translate-y-2 pointer-events-none': !showDropdown 
+          }"
+          @mouseenter="clearHideTimer"
+          @mouseleave="startHideTimer"
+        >
           <router-link 
             to="/admin/upload-product" 
             class="block px-4 py-3 text-sm hover:bg-gray-700 transition-colors duration-200"
+            @click="hideDropdown"
           >
             Upload Products
           </router-link>
           <router-link 
             to="/admin/edit-product" 
             class="block px-4 py-3 text-sm hover:bg-gray-700 transition-colors duration-200"
+            @click="hideDropdown"
           >
             Edit Products
           </router-link>
           <router-link 
             to="/admin/upload-tag" 
             class="block px-4 py-3 text-sm hover:bg-gray-700 transition-colors duration-200"
+            @click="hideDropdown"
           >
             Edit Tag/Category
           </router-link>
@@ -57,11 +78,33 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
+
+const showDropdown = ref(false);
+const hideTimer = ref(null);
+
+const startHideTimer = () => {
+  hideTimer.value = setTimeout(() => {
+    hideDropdown();
+  }, 300); // 300ms delay before hiding
+};
+
+const clearHideTimer = () => {
+  if (hideTimer.value) {
+    clearTimeout(hideTimer.value);
+    hideTimer.value = null;
+  }
+};
+
+const hideDropdown = () => {
+  showDropdown.value = false;
+};
+
 const logout = () => {
   // Handle logout functionality
   console.log('Logging out...');
   // You can add actual logout logic here
-}
+};
 </script>
 
 <style scoped>
@@ -69,17 +112,6 @@ const logout = () => {
   background-color: #1a1a1a;
   color: white;
   padding: 1rem 2rem;
-}
-
-.products-section:hover .products-dropdown {
-  opacity: 1;
-  transform: scale(100%);
-  pointer-events: auto;
-}
-
-.products-dropdown {
-  pointer-events: none;
-  z-index: 50;
 }
 
 /* Ensure links are visible in dropdown */
@@ -92,5 +124,12 @@ a:focus-visible,
 button:focus-visible {
   outline: 2px solid #60a5fa;
   outline-offset: 2px;
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
 }
 </style>

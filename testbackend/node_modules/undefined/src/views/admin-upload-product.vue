@@ -1,5 +1,16 @@
 <template>
   <div class="min-h-screen bg-gray-100 dark:bg-gray-900 py-12">
+    <!-- Success Message Toast -->
+    <div 
+      v-if="showSuccessMessage"
+      class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 z-50 animate-slide-in"
+    >
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+      <span>Product uploaded successfully!</span>
+    </div>
+
     <div class="max-w-4xl mx-auto px-4">
       <!-- Header -->
       <div class="mb-8 text-center">
@@ -13,21 +24,70 @@
           <!-- Image Upload Section -->
           <div class="space-y-2">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Product Image</label>
-            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg">
-              <div class="space-y-2 text-center">
+            <div 
+              class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg relative"
+              :class="{ 'border-red-500 dark:border-red-500': imageError }"
+              @dragover.prevent
+              @drop.prevent="handleFileDrop"
+            >
+              <!-- Preview Image -->
+              <div v-if="imagePreview" class="relative group">
+                <img 
+                  :src="imagePreview" 
+                  alt="Product preview" 
+                  class="h-48 w-auto object-contain rounded-lg"
+                />
+                <div 
+                  class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-lg"
+                >
+                  <button 
+                    type="button"
+                    @click="removeImage"
+                    class="text-white hover:text-red-500 transition-colors duration-200"
+                  >
+                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Upload Interface -->
+              <div v-else class="space-y-1 text-center">
                 <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                   <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
                 <div class="flex text-sm text-gray-600 dark:text-gray-400">
                   <label class="relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 focus-within:outline-none">
                     <span>Upload a file</span>
-                    <input type="file" @change="handleFileUpload" accept="image/*" class="sr-only" required />
+                    <input 
+                      type="file" 
+                      @change="handleFileUpload" 
+                      accept="image/*" 
+                      class="sr-only" 
+                      required
+                    />
                   </label>
                   <p class="pl-1">or drag and drop</p>
                 </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF up to 10MB</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  PNG, JPG, GIF up to 10MB
+                </p>
+              </div>
+
+              <!-- Loading Spinner -->
+              <div 
+                v-if="isUploading" 
+                class="absolute inset-0 bg-white bg-opacity-75 dark:bg-gray-800 dark:bg-opacity-75 flex items-center justify-center"
+              >
+                <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
               </div>
             </div>
+
+            <!-- Error Message -->
+            <p v-if="imageError" class="text-sm text-red-600 dark:text-red-400 mt-1">
+              {{ imageError }}
+            </p>
           </div>
 
           <!-- Basic Information -->
@@ -172,6 +232,9 @@ import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import { backendUrl } from '@/js/index';
 
+// Add new ref for success message
+const showSuccessMessage = ref(false);
+
 const product = ref({
   name: '',
   price: '',
@@ -186,6 +249,53 @@ const product = ref({
 const categories = ref([]);
 const tags = ref([]);
 const selectedTag = ref('');
+const imagePreview = ref(null);
+const imageError = ref('');
+const isUploading = ref(false);
+
+const handleFileUpload = (event) => {
+  const file = event.target.files[0];
+  validateAndProcessImage(file);
+};
+
+const handleFileDrop = (event) => {
+  const file = event.dataTransfer.files[0];
+  validateAndProcessImage(file);
+};
+
+const validateAndProcessImage = (file) => {
+  imageError.value = '';
+  
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+  if (!allowedTypes.includes(file.type)) {
+    imageError.value = 'Please upload a valid image file (PNG, JPG, or GIF)';
+    return;
+  }
+
+  // Validate file size (10MB max)
+  const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+  if (file.size > maxSize) {
+    imageError.value = 'Image size must be less than 10MB';
+    return;
+  }
+
+  // Create preview
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    imagePreview.value = e.target.result;
+  };
+  reader.readAsDataURL(file);
+
+  // Store file for upload
+  product.value.image = file;
+};
+
+const removeImage = () => {
+  imagePreview.value = null;
+  product.value.image = null;
+  imageError.value = '';
+};
 
 const fetchCategories = async () => {
   try {
@@ -205,10 +315,6 @@ const fetchTags = async () => {
   }
 };
 
-const handleFileUpload = (event) => {
-  product.value.image = event.target.files[0];
-};
-
 const addTag = () => {
   if (selectedTag.value && !product.value.tags.includes(selectedTag.value)) {
     product.value.tags.push(selectedTag.value);
@@ -221,6 +327,12 @@ const removeTag = (tag) => {
 };
 
 const uploadProduct = async () => {
+  if (!product.value.image) {
+    imageError.value = 'Please select an image for the product';
+    return;
+  }
+
+  isUploading.value = true;
   const formData = new FormData();
   formData.append('name', product.value.name);
   formData.append('price', product.value.price);
@@ -237,9 +349,19 @@ const uploadProduct = async () => {
         'Content-Type': 'multipart/form-data',
       },
     });
+    
+    // Show success message
+    showSuccessMessage.value = true;
+    setTimeout(() => {
+      showSuccessMessage.value = false;
+    }, 3000);
+
     resetForm();
   } catch (error) {
     console.error('Error uploading product:', error);
+    imageError.value = 'Failed to upload product. Please try again.';
+  } finally {
+    isUploading.value = false;
   }
 };
 
@@ -255,6 +377,8 @@ const resetForm = () => {
     image: null,
   };
   selectedTag.value = '';
+  imagePreview.value = null;
+  imageError.value = '';
 };
 
 onMounted(() => {
@@ -276,5 +400,40 @@ onMounted(() => {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
+}
+
+/* Add new styles for drag and drop */
+.border-dashed {
+  border-style: dashed;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Add new animation for success message */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out forwards;
 }
 </style>

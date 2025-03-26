@@ -454,45 +454,82 @@ app.put('/api/cart-items/:productId', async (req, res) => {
 });
 
 // PUT route for updating a product
-app.put('/api/products/:productId', (req, res) => {
-  uploadUpdate(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ message: err });
-    }
-
+// PUT route for updating a product
+app.put('/api/products/:productId', upload.single('productImage'), async (req, res) => {
+  try {
     const { productId } = req.params;
     const { name, price, p_category, p_tag, p_brand, p_quantity, offer_price } = req.body;
-    const productImage = req.file ? req.file.path : null; // Handle the case where no file is uploaded
 
-    try {
-      const updateData = {
-        product_name: name,
-        p_price: price,
-        p_category,
-        p_tag,
-        p_brand,
-        p_quantity,
-        offer_price
-      };
-
-      if (productImage) {
-        updateData.image = productImage;
-      }
-
-      const updatedProduct = await Product.findByIdAndUpdate(productId, updateData, { new: true });
-
-      if (!updatedProduct) {
-        return res.status(404).json({ message: 'Product not found' });
-      }
-
-      res.json(updatedProduct);
-    } catch (error) {
-      console.error('Error updating product:', error);
-      res.status(500).send('Server error');
+    // Validate required fields
+    if (!name || !price || !p_category) {
+      return res.status(400).json({ 
+        message: 'Name, price and category are required' 
+      });
     }
-  });
-});
 
+    // Prepare update data
+    const updateData = {
+      product_name: name,
+      p_price: parseFloat(price),
+      p_category,
+      p_tag: p_tag ? p_tag.split(',').filter(Boolean) : [],
+      p_brand,
+      p_quantity: parseInt(p_quantity) || 0
+    };
+
+    // Only add offer price if it exists and is not empty
+    if (offer_price) {
+      updateData.offer_price = parseFloat(offer_price);
+    }
+
+    // Handle image update
+    if (req.file) {
+      // Create readable stream from buffer
+      const readableStream = new Readable();
+      readableStream.push(req.file.buffer);
+      readableStream.push(null);
+
+      // Upload to GridFS
+      const uploadStream = gfsBucket.openUploadStream(req.file.originalname, {
+        contentType: req.file.mimetype,
+      });
+
+      await new Promise((resolve, reject) => {
+        readableStream.pipe(uploadStream)
+          .on('error', reject)
+          .on('finish', () => {
+            updateData.p_images = uploadStream.id.toString();
+            resolve();
+          });
+      });
+    }
+
+    // Find and update the product
+    const updatedProduct = await Product.findByIdAndUpdate(
+      productId,
+      updateData,
+      { 
+        new: true,
+        runValidators: true
+      }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Return the updated product without constructing full URL
+    // The client will handle URL construction
+    res.json(updatedProduct);
+
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ 
+      message: 'Failed to update product',
+      error: error.message 
+    });
+  }
+});
 
 // DELETE route for deleting a product
 app.delete('/api/products/:productId', async (req, res) => {
