@@ -33,22 +33,22 @@
         </h3>
 
         <div class="text-gray-700 dark:text-gray-300">
-          <p class="mb-2">
+          <p class="mb-2" data-cy="orderBillingName">
             <strong>Billing Name:</strong> {{ order.billingFirstName }} {{ order.billingLastName }}
           </p>
-          <p class="mb-2">
+          <p class="mb-2"  data-cy="orderBillingAddress">
             <strong>Billing Address:</strong> {{ order.billingAddress }}, {{ order.billingCity }}, {{ order.billingZip }}, {{ order.billingCountry }}
           </p>
-          <p class="mb-2">
+          <p class="mb-2" data-cy="orderShippingName">
             <strong>Shipping Name:</strong> {{ order.firstName }} {{ order.lastName }}
           </p>
-          <p class="mb-2">
+          <p class="mb-2" data-cy="orderShippingAddress">
             <strong>Shipping Address:</strong> {{ order.address }}, {{ order.city }}, {{ order.zip }}, {{ order.country }}
           </p>
-          <p class="mb-2">
+          <p class="mb-2" data-cy="orderDeliveryMethod">
             <strong>Delivery Method:</strong> {{ order.deliveryMethod }}
           </p>
-          <p class="mb-2">
+          <p class="mb-2"  data-cy="orderPaymentMethod">
             <strong>Payment Method:</strong> {{ order.paymentMethod }}
           </p>
 

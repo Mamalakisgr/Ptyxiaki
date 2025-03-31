@@ -16,7 +16,7 @@
 
         <!-- Billing Address Form -->
         <!-- Billing Form -->
-        <div v-if="!sameAsShipping" class="max-w-2xl mx-auto bg-gray-800 p-6 sm:p-8 rounded-lg border border-gray-700 shadow-md">
+        <div v-if="!sameAsShipping" class="max-w-2xl mx-auto bg-gray-800 p-6 sm:p-8 rounded-lg border border-gray-700 shadow-md" data-cy="billingForm">
           <h2 class="text-xl font-bold mb-6 border-b border-gray-700 pb-2">
             Billing Address
           </h2>
@@ -79,9 +79,10 @@
         <button
           @click="finishPayment"
           type="button"
+          data-cy="finishPaymentButton"
           class="w-full px-5 py-3 text-lg bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 text-white rounded-lg font-semibold shadow transition-all"
         >
-          Finish payment
+          Finish Payment
         </button>
 
         <!-- Alerts -->

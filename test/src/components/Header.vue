@@ -108,13 +108,13 @@
         <template v-else>
           <RouterLink 
             to="/register" 
-            class="px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200"
+            class="px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200" data-cy="registerButtonHeader"
           >
             Sign Up
           </RouterLink>
           <button 
             @click="openLoginModal" 
-            class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+            class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors duration-200" data-cy="loginButtonHeader"
           >
             Login
           </button>
@@ -241,7 +241,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
           </svg>
-          <span class="text-xs mt-1">{{ auth.loggedIn ? 'Account' : 'Login' }}</span>
+          <span class="text-xs mt-1" >{{ auth.loggedIn ? 'Account' : 'Login' }}</span>
         </RouterLink>
       </div>
     </nav>

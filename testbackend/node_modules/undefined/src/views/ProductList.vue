@@ -253,7 +253,7 @@
             <!-- Product Info -->
             <div class="p-4">
               <RouterLink :to="`/product-details/${product._id}`">
-                <h3 class="text-white font-medium mb-2 line-clamp-2">{{ product.product_name }}</h3>
+                <h3 class="text-white font-medium mb-2 line-clamp-2" data-cy="product_name" >{{ product.product_name }}</h3>
               </RouterLink>
               <div class="flex items-center justify-between">
                 <div>
@@ -262,11 +262,11 @@
                   </span>
                   <span
                     v-if="product.offer_price"
-                    class="text-sm text-gray-400 line-through ml-2"
+                    class="text-sm text-gray-400 line-through ml-2" data-cy="product_offer"
                   >
                     €{{ product.p_price }}
                   </span>
-                  <span v-else class="text-lg font-bold text-white">
+                  <span v-else class="text-lg font-bold text-white"  data-cy="product_price">
                     €{{ product.p_price }}
                   </span>
                 </div>

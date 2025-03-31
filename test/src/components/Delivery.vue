@@ -12,6 +12,7 @@
           id="courier"
           name="delivery"
           value="courier"
+          data-cy="courier"
           v-model="deliveryMethod"
           class="mt-1 accent-blue-600"
         />
@@ -49,6 +50,7 @@
           id="pickup"
           name="delivery"
           value="pickup"
+          data-cy="pickup"
           v-model="deliveryMethod"
           class="mt-1 accent-blue-600"
         />
